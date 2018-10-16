@@ -1,12 +1,10 @@
 import cv2
 import numpy as np
+import io
+from PIL import Image
+from cStringIO import StringIO
 
 class ShapeDetector:
-    def __get_color_threshold_image(self, img, low_t, up_t):
-        mask = cv2.inRange(img, low_t, up_t)
-        color_thresh = cv2.bitwise_and(img, img, mask = mask)
-        return color_thresh
-
     def __translate_contours(self, c, x, y):
         size = c.shape[0]
         for i in range(0,size):
@@ -46,7 +44,15 @@ class ShapeDetector:
         roi = img[roi_bounds[0]:roi_bounds[1], roi_bounds[2]:roi_bounds[3]]
         img_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(img_gray, (5, 5), 0)
-        ret, thresh = cv2.threshold(blurred, 0, 128, cv2.THRESH_BINARY)
+        thresh = \
+            cv2.adaptiveThreshold(
+                blurred,
+                128,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY_INV,
+                7,
+                2)
+
         im2, contours, hierarchy = \
             cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         shape = 'unknown'
@@ -69,25 +75,43 @@ class ShapeDetector:
             else:
                 shape = 'Circle'
 
-        return (shape, c)
+        return (shape, c, thresh)
 
-    def __get_cv_mat_from_jpg_string(self, jpg_string):
-        img_bytes = np.asarray(bytearray(jpg_string), dtype = np.uint8)
-        cv_mat_img = cv2.imdecode(img_bytes, cv2.IMREAD_COLOR)
+    def __get_cv_mat_from_jpg(self, jpg):
+        cv_mat_img = None
+        try:
+            output = io.BytesIO()
+            jpg.save(output, format='JPEG')
+            img_hex_data = output.getvalue()
+            img_bytes = np.asarray(bytearray(img_hex_data), dtype = np.uint8)
+            cv_mat_img = cv2.imdecode(img_bytes, cv2.IMREAD_COLOR)
+        except:
+            pass
 
         return cv_mat_img
 
     def get_shape_and_highlited_image(self, jpg_img, output_img_size = [640, 480]):
-        cv_mat_img = self.__get_cv_mat_from_jpg_string(jpg_img)
-        color_thresh = self.__get_color_threshold_image(cv_mat_img, np.array([0, 0, 0]), np.array([128, 128, 128]))
-        shape_name, contours = self.__get_shape_name_and_contours([30, 90, 40,100], color_thresh)
+        cv_mat_img = self.__get_cv_mat_from_jpg(jpg_img)
+        jpg_img = cv_mat_img
+        shape_name = 'unknown'
 
-        if(contours is not None and self.__contour_area_within_threshold(contours, 1000, 1800)):
-            self.__translate_contours(contours, 40, 30)
-            self.__draw_contours_and_shape_name(contours, shape_name, cv_mat_img)
+        if cv_mat_img is not None:
+            shape_name, contours, thresh = self.__get_shape_name_and_contours([20, 100, 30, 110], cv_mat_img)
 
-        cv_mat_img = \
-            cv2.resize(cv_mat_img, (output_img_size[0], output_img_size[1]), interpolation = cv2.INTER_AREA)
-        jpg_img = cv2.imencode('.jpg', cv_mat_img)[1].tostring()
+            if(contours is not None and self.__contour_area_within_threshold(contours, 800, 1800)):
+                self.__translate_contours(contours, 30, 20)
+                self.__draw_contours_and_shape_name(contours, shape_name, cv_mat_img)
+
+            cv_mat_img = \
+                cv2.resize(cv_mat_img, (output_img_size[0], output_img_size[1]), interpolation = cv2.INTER_AREA)
+            small_thresh = \
+                cv2.resize(thresh, (80, 60), interpolation = cv2.INTER_AREA)
+            small_thresh = cv2.cvtColor(small_thresh, cv2.COLOR_GRAY2BGR)
+
+            cv_mat_img[420:480, 560:640] = small_thresh
+
+            jpg_img = cv2.imencode('.jpg', cv_mat_img)[1].tostring()
+            img_as_mem_file = StringIO(jpg_img)
+            jpg_img = Image.open(img_as_mem_file)
 
         return shape_name, jpg_img
