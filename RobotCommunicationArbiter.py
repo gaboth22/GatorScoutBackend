@@ -27,9 +27,10 @@ class RobotCommunicationArbiter:
         address = 'http://' + self.robot_ip_address + IMAGE_REQUEST_PATH
         try:
             r = urllib.urlopen(address)
-            if r.getcode() == 200:
+            code = r.getcode()
+            if code == 200:
                 print 'Requesting from: ' + address
-                print 'Status code: ' + str(r.getcode())
+                print 'Status code: ' + str(code)
                 meta_data = r.info()
                 img_size = int(meta_data.getheaders("Content-Length")[0])
                 img_data = r.read(img_size)
