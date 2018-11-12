@@ -33,6 +33,7 @@ class RobotCommunicationArbiter:
                 print 'Status code: ' + str(code)
                 meta_data = r.info()
                 img_size = int(meta_data.getheaders("Content-Length")[0])
+                print 'Image size: ' + str(img_size)
                 img_data = r.read(img_size)
                 img_as_mem_file = StringIO(img_data)
                 self.camera_frame = Image.open(img_as_mem_file)

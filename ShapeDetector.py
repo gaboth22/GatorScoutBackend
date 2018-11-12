@@ -96,10 +96,9 @@ class ShapeDetector:
         shape_name = 'unknown'
 
         if cv_mat_img is not None:
-            shape_name, contours, thresh = self.__get_shape_name_and_contours([20, 100, 30, 110], cv_mat_img)
-
-            if(contours is not None and self.__contour_area_within_threshold(contours, 800, 1800)):
-                self.__translate_contours(contours, 30, 20)
+            shape_name, contours, thresh = self.__get_shape_name_and_contours([50, 120, 0, 160], cv_mat_img)
+            if(contours is not None and self.__contour_area_within_threshold(contours, 600, 6500)):
+                self.__translate_contours(contours, 0, 0)
                 self.__draw_contours_and_shape_name(contours, shape_name, cv_mat_img)
 
             cv_mat_img = \
