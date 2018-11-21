@@ -14,6 +14,7 @@ import binascii
 IMAGE_REQUEST_PATH = '/get_image'
 MOTION_REQUEST_PATH = '/post_motion'
 MAPS_REQUEST_PATH = '/get_maps'
+IMG_POS_DATA = '/get_image_pos'
 MOVE_NONE = 0
 MOVE_FORWARD = 1
 MOVE_RIGHT = 2
@@ -25,11 +26,34 @@ class RobotCommunicationArbiter:
     current_move_command = MOVE_NONE
     new_move_command = False
     robot_ip_address = ''
+    xpos = None
+    ypos = None
+    already_got_pos = False
 
     def __init__(self, robot_ip):
         self.camera_frame = Image.open('uflogo.jpg')
         self.maps_data = []
         self.robot_ip_address = robot_ip
+
+    def get_new_img_pos(self):
+        if not self.already_got_pos:
+            address = 'http://' + self.robot_ip_address + IMG_POS_DATA
+            try:
+                r = urllib.urlopen(address)
+                code = r.getcode()
+                if code == 200:
+                    print 'Requesting from: ' + address
+                    print 'Status code: ' + str(code)
+                    pos_data = data = \
+                        json.loads(r.read().decode('utf-8'))
+                    print pos_data
+                    self.xpos = pos_data['xpos']
+                    self.ypos = pos_data['ypos']
+                    self.already_got_pos = True
+            except:
+                pass
+
+        return (self.xpos, self.ypos)
 
     def get_new_cam_frame(self):
         address = 'http://' + self.robot_ip_address + IMAGE_REQUEST_PATH

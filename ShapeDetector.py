@@ -96,10 +96,12 @@ class ShapeDetector:
         shape_name = 'unknown'
 
         if cv_mat_img is not None:
-            shape_name, contours, thresh = self.__get_shape_name_and_contours([50, 120, 0, 160], cv_mat_img)
+            shape_name, contours, thresh = self.__get_shape_name_and_contours([30, 120, 0, 160], cv_mat_img)
             if(contours is not None and self.__contour_area_within_threshold(contours, 600, 6500)):
-                self.__translate_contours(contours, 0, 50)
+                self.__translate_contours(contours, 0, 30)
                 self.__draw_contours_and_shape_name(contours, shape_name, cv_mat_img)
+            else:
+                shape_name = 'unknown'
 
             cv_mat_img = \
                 cv2.resize(cv_mat_img, (output_img_size[0], output_img_size[1]), interpolation = cv2.INTER_AREA)

@@ -5,10 +5,16 @@ from cStringIO import StringIO
 from PIL import Image, ImageDraw
 from PIL import ImageOps
 import threading
+import math
 
 GATORSCOUT_IP_ADDR = '192.168.4.100'
 
-def get_maps_as_image(blocked):
+def flag_shape_name_found(robot_comm_arbiter):
+    global display_shape_name
+    display_shape_name = True
+    get_new_map_data(robot_comm_arbiter)
+
+def get_maps_as_image(robot_comm_arbiter, blocked, xpos, ypos):
     img = Image.new('RGB', (100, 100), color = (0, 0, 0))
     d = ImageDraw.Draw(img)
 
@@ -23,12 +29,27 @@ def get_maps_as_image(blocked):
             else:
                 d.text((x + xoffset, y + yoffset), '.', fill=(0,0,0)),
 
+    global shape_name
+    global found_shape
+    if shape_name != 'unknown' and xpos is not None and ypos is not None and found_shape == False:
+        found_shape = True
+        threading.Timer(3, flag_shape_name_found, args = (robot_comm_arbiter,)).start()
+
     img = img.rotate(270)
     img = ImageOps.mirror(img)
+    d = ImageDraw.Draw(img)
+
+    global display_shape_name
+    if display_shape_name == True:
+        text_to_show = 'Found ' + shape_name
+        print text_to_show
+        d.text((20, 20), text_to_show, fill=(0,0,255)),
+
     return img
 
 def get_new_frame(robot_comm_arbiter, shape_dectector):
     robocam_frame = robot_comm_arbiter.get_new_cam_frame()
+    global shape_name
     shape_name, robocam_frame_with_shape = shape_dectector.get_shape_and_highlited_image(robocam_frame)
     global cam_frame_to_show
     cam_frame_to_show = robocam_frame_with_shape if robocam_frame_with_shape is not None else robocam_frame
@@ -36,11 +57,17 @@ def get_new_frame(robot_comm_arbiter, shape_dectector):
 
 def get_new_map_data(robot_comm_arbiter):
     maps_data = robot_comm_arbiter.get_new_map_data()
+    xpos, ypos = robot_comm_arbiter.get_new_img_pos()
     global map_frame_to_show
-    map_frame_to_show = get_maps_as_image(maps_data)
-    threading.Timer(0.5, get_new_map_data, args = (robot_comm_arbiter,)).start()
+    map_frame_to_show = get_maps_as_image(robot_comm_arbiter, maps_data, xpos, ypos)
+    if xpos is None:
+        threading.Timer(0.5, get_new_map_data, args = (robot_comm_arbiter,)).start()
 
 def main():
+    global display_shape_name
+    display_shape_name = False
+    global found_shape
+    found_shape = False
     robot_comm_arbiter = rca.RobotCommunicationArbiter(robot_ip = GATORSCOUT_IP_ADDR)
     shape_dectector = sd.ShapeDetector()
     placeholder_img = Image.open('uflogo.jpg')
