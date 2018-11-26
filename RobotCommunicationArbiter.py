@@ -10,6 +10,7 @@ import numpy as np
 import traceback
 import logging
 import binascii
+import threading
 
 IMAGE_REQUEST_PATH = '/get_image'
 MOTION_REQUEST_PATH = '/post_motion'
@@ -29,6 +30,7 @@ class RobotCommunicationArbiter:
     xpos = None
     ypos = None
     already_got_pos = False
+    wifi_sem = threading.Semaphore()
 
     def __init__(self, robot_ip):
         self.camera_frame = Image.open('uflogo.jpg')
@@ -38,6 +40,7 @@ class RobotCommunicationArbiter:
     def get_new_img_pos(self):
         if not self.already_got_pos:
             address = 'http://' + self.robot_ip_address + IMG_POS_DATA
+            self.wifi_sem.acquire()
             try:
                 r = urllib.urlopen(address)
                 code = r.getcode()
@@ -52,11 +55,13 @@ class RobotCommunicationArbiter:
                     self.already_got_pos = True
             except:
                 pass
-
+                
+        self.wifi_sem.release()
         return (self.xpos, self.ypos)
 
     def get_new_cam_frame(self):
         address = 'http://' + self.robot_ip_address + IMAGE_REQUEST_PATH
+        self.wifi_sem.acquire()
         try:
             r = urllib.urlopen(address)
             code = r.getcode()
@@ -72,10 +77,12 @@ class RobotCommunicationArbiter:
         except:
             pass
 
+        self.wifi_sem.release()
         return self.camera_frame
 
     def get_new_map_data(self):
         address = 'http://' + self.robot_ip_address + MAPS_REQUEST_PATH
+        self.wifi_sem.acquire()
         try:
             r = urllib.urlopen(address)
             code = r.getcode()
@@ -111,6 +118,7 @@ class RobotCommunicationArbiter:
         except Exception as e:
             logging.error(traceback.format_exc())
 
+        self.wifi_sem.release()
         return self.maps_data
 
     def request_forward_motion(self):

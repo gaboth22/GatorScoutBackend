@@ -33,7 +33,7 @@ def get_maps_as_image(robot_comm_arbiter, blocked, xpos, ypos):
     global found_shape
     if shape_name != 'unknown' and xpos is not None and ypos is not None and found_shape == False:
         found_shape = True
-        threading.Timer(3, flag_shape_name_found, args = (robot_comm_arbiter,)).start()
+        threading.Timer(2, flag_shape_name_found, args = (robot_comm_arbiter,)).start()
 
     img = img.rotate(270)
     img = ImageOps.mirror(img)
@@ -61,7 +61,7 @@ def get_new_map_data(robot_comm_arbiter):
     global map_frame_to_show
     map_frame_to_show = get_maps_as_image(robot_comm_arbiter, maps_data, xpos, ypos)
     if xpos is None:
-        threading.Timer(0.5, get_new_map_data, args = (robot_comm_arbiter,)).start()
+        threading.Timer(0.3, get_new_map_data, args = (robot_comm_arbiter,)).start()
 
 def main():
     global display_shape_name
