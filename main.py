@@ -18,7 +18,7 @@ def get_maps_as_image(robot_comm_arbiter, blocked, xpos, ypos):
     img = Image.new('RGB', (100, 100), color = (0, 0, 0))
     d = ImageDraw.Draw(img)
 
-    xoffset = 40
+    xoffset = 30
     yoffset = 10
 
     for x in range(0, 64):
